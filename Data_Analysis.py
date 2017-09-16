@@ -6,10 +6,10 @@ Date: 9/9/2017
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import cross_val_score, train_test_split，KFold
-from sklearn.preprocessing import StandardScaler，RobustScaler
+from sklearn.model_selection import cross_val_score, train_test_split, KFold
+from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.linear_model import LinearRegression, RidgeCV, LassoCV, ElasticNetCV
-from sklearn.metrics import mean_squared_error, make_scorer,r2_score
+from sklearn.metrics import mean_squared_error, make_scorer, r2_score
 from sklearn.linear_model import ElasticNet, Lasso,  BayesianRidge, LassoLarsIC
 from sklearn.ensemble import RandomForestRegressor,  GradientBoostingRegressor
 from sklearn.kernel_ridge import KernelRidge
