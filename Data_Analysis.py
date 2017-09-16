@@ -1,7 +1,7 @@
 '''
 Concrete data analysis
 Author: CCR
-Date: 9/9/2017
+Date: 9/16/2017
 '''
 
 import pandas as pd
@@ -27,11 +27,17 @@ data = pd.read_excel("Concrete_Data_UCI.xls")
 y = data['CompressiveStrength']
 train = data.drop(['CompressiveStrength'],1)
 
+n_folds = 5
 X_train, X_test, y_train, y_test = train_test_split(train, y, test_size = 0.3, random_state = 0)
-print("X_train : " + str(X_train.shape))
-print("X_test : " + str(X_test.shape))
-print("y_train : " + str(y_train.shape))
-print("y_test : " + str(y_test.shape))
+def DatasetDescription():
+    print("X_train : " + str(X_train.shape))
+    print("X_test : " + str(X_test.shape))
+    print("y_train : " + str(y_train.shape))
+    print("y_test : " + str(y_test.shape))
+
+
+def Jointplot(feature, target):
+    sns.jointplot(data[feature],data[target],kind='reg')
 
 # Define error measure for official scoring : RMSE
 scorer = make_scorer(mean_squared_error, greater_is_better = False)
@@ -55,212 +61,230 @@ def r2_cv_test(model):
     return(r2)
 
 # Linear Regression
-lr = LinearRegression()
-lr.fit(X_train, y_train)
+class LR():
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+    
+    def predict():
+        lr.predict()
+    # Look at predictions on training and validation set
+    print("RMSE on Training set :", rmse_cv_train(lr).mean())
+    print("RMSE on Test set :", rmse_cv_test(lr).mean())
+    print("R2 on Training set :", r2_cv_train(lr).mean())
+    print("R2 on Test set :", r2_cv_test(lr).mean())
+    y_train_pred = lr.predict(X_train)
+    y_test_pred = lr.predict(X_test)
 
-# Look at predictions on training and validation set
-print("RMSE on Training set :", rmse_cv_train(lr).mean())
-print("RMSE on Test set :", rmse_cv_test(lr).mean())
-print("R2 on Training set :", r2_cv_train(lr).mean())
-print("R2 on Test set :", r2_cv_test(lr).mean())
-y_train_pred = lr.predict(X_train)
-y_test_pred = lr.predict(X_test)
+    # Plot residuals
+    plt.scatter(y_train_pred, y_train_pred - y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_pred, y_test_pred - y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Residuals")
+    plt.legend(loc = "upper left")
+    plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
+    plt.show()
 
-# Plot residuals
-plt.scatter(y_train_pred, y_train_pred - y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_pred, y_test_pred - y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression")
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.legend(loc = "upper left")
-plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
-plt.show()
-
-# Plot predictions
-plt.scatter(y_train_pred, y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_pred, y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression")
-plt.xlabel("Predicted values")
-plt.ylabel("Real values")
-plt.legend(loc = "upper left")
-plt.plot([5,80], [5,80], c = "red")
-plt.show()
+    # Plot predictions
+    plt.scatter(y_train_pred, y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_pred, y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Real values")
+    plt.legend(loc = "upper left")
+    plt.plot([5,80], [5,80], c = "red")
+    plt.show()
 
 # 2* Ridge
-ridge = RidgeCV(alphas = [0.01, 0.03, 0.06, 0.1, 0.3, 0.6, 1, 3, 6, 10, 30, 60])
-ridge.fit(X_train, y_train)
-alpha = ridge.alpha_
-print("Best alpha :", alpha)
+def Ridge():
+    ridge = RidgeCV(alphas = [0.01, 0.03, 0.06, 0.1, 0.3, 0.6, 1, 3, 6, 10, 30, 60])
+    ridge.fit(X_train, y_train)
+    alpha = ridge.alpha_
+    print("Best alpha :", alpha)
 
-print("Try again for more precision with alphas centered around " + str(alpha))
-ridge = RidgeCV(alphas = [alpha * .6, alpha * .65, alpha * .7, alpha * .75, alpha * .8, alpha * .85, 
-                          alpha * .9, alpha * .95, alpha, alpha * 1.05, alpha * 1.1, alpha * 1.15,
-                          alpha * 1.25, alpha * 1.3, alpha * 1.35, alpha * 1.4], 
-                cv = 10)
-ridge.fit(X_train, y_train)
-alpha = ridge.alpha_
-print("Best alpha :", alpha)
+    print("Try again for more precision with alphas centered around " + str(alpha))
+    ridge = RidgeCV(alphas = [alpha * .6, alpha * .65, alpha * .7, alpha * .75, alpha * .8, alpha * .85, 
+                              alpha * .9, alpha * .95, alpha, alpha * 1.05, alpha * 1.1, alpha * 1.15,
+                              alpha * 1.25, alpha * 1.3, alpha * 1.35, alpha * 1.4], 
+                    cv = 10)
+    ridge.fit(X_train, y_train)
+    alpha = ridge.alpha_
+    print("Best alpha :", alpha)
 
-print("Ridge RMSE on Training set :", rmse_cv_train(ridge).mean())
-print("Ridge RMSE on Test set :", rmse_cv_test(ridge).mean())
-print("R2 on Training set :", r2_cv_train(ridge).mean())
-print("R2 on Test set :", r2_cv_test(ridge).mean())
-y_train_rdg = ridge.predict(X_train)
-y_test_rdg = ridge.predict(X_test)
+    print("Ridge RMSE on Training set :", rmse_cv_train(ridge).mean())
+    print("Ridge RMSE on Test set :", rmse_cv_test(ridge).mean())
+    print("R2 on Training set :", r2_cv_train(ridge).mean())
+    print("R2 on Test set :", r2_cv_test(ridge).mean())
+    y_train_rdg = ridge.predict(X_train)
+    y_test_rdg = ridge.predict(X_test)
 
-# Plot residuals
-plt.scatter(y_train_rdg, y_train_rdg - y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_rdg, y_test_rdg - y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression with Ridge regularization")
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.legend(loc = "upper left")
-plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
-plt.show()
+    # Plot residuals
+    plt.scatter(y_train_rdg, y_train_rdg - y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_rdg, y_test_rdg - y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression with Ridge regularization")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Residuals")
+    plt.legend(loc = "upper left")
+    plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
+    plt.show()
 
-# Plot predictions
-plt.scatter(y_train_rdg, y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_rdg, y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression with Ridge regularization")
-plt.xlabel("Predicted values")
-plt.ylabel("Real values")
-plt.legend(loc = "upper left")
-plt.plot([5,80], [5,80], c = "red")
-plt.show()
+    # Plot predictions
+    plt.scatter(y_train_rdg, y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_rdg, y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression with Ridge regularization")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Real values")
+    plt.legend(loc = "upper left")
+    plt.plot([5,80], [5,80], c = "red")
+    plt.show()
 
-# Plot important coefficients
-coefs = pd.Series(ridge.coef_, index = X_train.columns)
-print("Ridge picked " + str(sum(coefs != 0)) + " features and eliminated the other " +  \
-      str(sum(coefs == 0)) + " features")
-imp_coefs = pd.concat([coefs.sort_values().head(10),
-                     coefs.sort_values().tail(10)])
-imp_coefs.plot(kind = "barh")
-plt.title("Coefficients in the Ridge Model")
-plt.show()
+    # Plot important coefficients
+    coefs = pd.Series(ridge.coef_, index = X_train.columns)
+    print("Ridge picked " + str(sum(coefs != 0)) + " features and eliminated the other " +  \
+          str(sum(coefs == 0)) + " features")
+    imp_coefs = pd.concat([coefs.sort_values().head(10),
+                         coefs.sort_values().tail(10)])
+    imp_coefs.plot(kind = "barh")
+    plt.title("Coefficients in the Ridge Model")
+    plt.show()
 
 # 3* Lasso
-lasso = LassoCV(alphas = [0.0001, 0.0003, 0.0006, 0.001, 0.003, 0.006, 0.01, 0.03, 0.06, 0.1, 
-                          0.3, 0.6, 1], 
-                max_iter = 50000, cv = 10)
-lasso.fit(X_train, y_train)
-alpha = lasso.alpha_
-print("Best alpha :", alpha)
+def Lasso():
+    lasso = LassoCV(alphas = [0.0001, 0.0003, 0.0006, 0.001, 0.003, 0.006, 0.01, 0.03, 0.06, 0.1, 
+                              0.3, 0.6, 1], 
+                    max_iter = 50000, cv = 10)
+    lasso.fit(X_train, y_train)
+    alpha = lasso.alpha_
+    print("Best alpha :", alpha)
 
-print("Try again for more precision with alphas centered around " + str(alpha))
-lasso = LassoCV(alphas = [alpha * .6, alpha * .65, alpha * .7, alpha * .75, alpha * .8, 
-                          alpha * .85, alpha * .9, alpha * .95, alpha, alpha * 1.05, 
-                          alpha * 1.1, alpha * 1.15, alpha * 1.25, alpha * 1.3, alpha * 1.35, 
-                          alpha * 1.4], 
-                max_iter = 50000, cv = 10)
-lasso.fit(X_train, y_train)
-alpha = lasso.alpha_
-print("Best alpha :", alpha)
+    print("Try again for more precision with alphas centered around " + str(alpha))
+    lasso = LassoCV(alphas = [alpha * .6, alpha * .65, alpha * .7, alpha * .75, alpha * .8, 
+                              alpha * .85, alpha * .9, alpha * .95, alpha, alpha * 1.05, 
+                              alpha * 1.1, alpha * 1.15, alpha * 1.25, alpha * 1.3, alpha * 1.35, 
+                              alpha * 1.4], 
+                    max_iter = 50000, cv = 10)
+    lasso.fit(X_train, y_train)
+    alpha = lasso.alpha_
+    print("Best alpha :", alpha)
 
-print("Lasso RMSE on Training set :", rmse_cv_train(lasso).mean())
-print("Lasso RMSE on Test set :", rmse_cv_test(lasso).mean())
-print("R2 on Training set :", r2_cv_train(lasso).mean())
-print("R2 on Test set :", r2_cv_test(lasso).mean())
-y_train_las = lasso.predict(X_train)
-y_test_las = lasso.predict(X_test)
+    print("Lasso RMSE on Training set :", rmse_cv_train(lasso).mean())
+    print("Lasso RMSE on Test set :", rmse_cv_test(lasso).mean())
+    print("R2 on Training set :", r2_cv_train(lasso).mean())
+    print("R2 on Test set :", r2_cv_test(lasso).mean())
+    y_train_las = lasso.predict(X_train)
+    y_test_las = lasso.predict(X_test)
 
-# Plot residuals
-plt.scatter(y_train_las, y_train_las - y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_las, y_test_las - y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression with Lasso regularization")
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.legend(loc = "upper left")
-plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
-plt.show()
+    # Plot residuals
+    plt.scatter(y_train_las, y_train_las - y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_las, y_test_las - y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression with Lasso regularization")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Residuals")
+    plt.legend(loc = "upper left")
+    plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
+    plt.show()
 
-# Plot predictions
-plt.scatter(y_train_las, y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_las, y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression with Lasso regularization")
-plt.xlabel("Predicted values")
-plt.ylabel("Real values")
-plt.legend(loc = "upper left")
-plt.plot([5,80], [5,80], c = "red")
-plt.show()
+    # Plot predictions
+    plt.scatter(y_train_las, y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_las, y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression with Lasso regularization")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Real values")
+    plt.legend(loc = "upper left")
+    plt.plot([5,80], [5,80], c = "red")
+    plt.show()
 
-# Plot important coefficients
-coefs = pd.Series(lasso.coef_, index = X_train.columns)
-print("Lasso picked " + str(sum(coefs != 0)) + " features and eliminated the other " +  \
-      str(sum(coefs == 0)) + " features")
-imp_coefs = pd.concat([coefs.sort_values().head(10),
-                     coefs.sort_values().tail(10)])
-imp_coefs.plot(kind = "barh")
-plt.title("Coefficients in the Lasso Model")
-plt.show()
+    # Plot important coefficients
+    coefs = pd.Series(lasso.coef_, index = X_train.columns)
+    print("Lasso picked " + str(sum(coefs != 0)) + " features and eliminated the other " +  \
+          str(sum(coefs == 0)) + " features")
+    imp_coefs = pd.concat([coefs.sort_values().head(10),
+                         coefs.sort_values().tail(10)])
+    imp_coefs.plot(kind = "barh")
+    plt.title("Coefficients in the Lasso Model")
+    plt.show()
 
 # 4* ElasticNet
-elasticNet = ElasticNetCV(l1_ratio = [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1],
-                          alphas = [0.0001, 0.0003, 0.0006, 0.001, 0.003, 0.006, 
-                                    0.01, 0.03, 0.06, 0.1, 0.3, 0.6, 1, 3, 6], 
-                          max_iter = 50000, cv = 10)
-elasticNet.fit(X_train, y_train)
-alpha = elasticNet.alpha_
-ratio = elasticNet.l1_ratio_
-print("Best l1_ratio :", ratio)
-print("Best alpha :", alpha )
+def ElasticNet():
+    elasticNet = ElasticNetCV(l1_ratio = [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1],
+                              alphas = [0.0001, 0.0003, 0.0006, 0.001, 0.003, 0.006, 
+                                        0.01, 0.03, 0.06, 0.1, 0.3, 0.6, 1, 3, 6], 
+                              max_iter = 50000, cv = 10)
+    elasticNet.fit(X_train, y_train)
+    alpha = elasticNet.alpha_
+    ratio = elasticNet.l1_ratio_
+    print("Best l1_ratio :", ratio)
+    print("Best alpha :", alpha )
 
-print("Try again for more precision with l1_ratio centered around " + str(ratio))
-elasticNet = ElasticNetCV(l1_ratio = [ratio * .85, ratio * .9, ratio * .95, ratio, ratio * 1.05, ratio * 1.1, ratio * 1.15],
-                          alphas = [0.0001, 0.0003, 0.0006, 0.001, 0.003, 0.006, 0.01, 0.03, 0.06, 0.1, 0.3, 0.6, 1, 3, 6], 
-                          max_iter = 50000, cv = 10)
-elasticNet.fit(X_train, y_train)
-if (elasticNet.l1_ratio_ > 1):
-    elasticNet.l1_ratio_ = 1    
-alpha = elasticNet.alpha_
-ratio = elasticNet.l1_ratio_
-print("Best l1_ratio :", ratio)
-print("Best alpha :", alpha )
+    print("Try again for more precision with l1_ratio centered around " + str(ratio))
+    elasticNet = ElasticNetCV(l1_ratio = [ratio * .85, ratio * .9, ratio * .95, ratio, ratio * 1.05, ratio * 1.1, ratio * 1.15],
+                              alphas = [0.0001, 0.0003, 0.0006, 0.001, 0.003, 0.006, 0.01, 0.03, 0.06, 0.1, 0.3, 0.6, 1, 3, 6], 
+                              max_iter = 50000, cv = 10)
+    elasticNet.fit(X_train, y_train)
+    if (elasticNet.l1_ratio_ > 1):
+        elasticNet.l1_ratio_ = 1    
+    alpha = elasticNet.alpha_
+    ratio = elasticNet.l1_ratio_
+    print("Best l1_ratio :", ratio)
+    print("Best alpha :", alpha )
 
-print("Now try again for more precision on alpha, with l1_ratio fixed at " + str(ratio) + 
-      " and alpha centered around " + str(alpha))
-elasticNet = ElasticNetCV(l1_ratio = ratio,
-                          alphas = [alpha * .6, alpha * .65, alpha * .7, alpha * .75, alpha * .8, alpha * .85, alpha * .9, 
-                                    alpha * .95, alpha, alpha * 1.05, alpha * 1.1, alpha * 1.15, alpha * 1.25, alpha * 1.3, 
-                                    alpha * 1.35, alpha * 1.4], 
-                          max_iter = 50000, cv = 10)
-elasticNet.fit(X_train, y_train)
-if (elasticNet.l1_ratio_ > 1):
-    elasticNet.l1_ratio_ = 1    
-alpha = elasticNet.alpha_
-ratio = elasticNet.l1_ratio_
-print("Best l1_ratio :", ratio)
-print("Best alpha :", alpha )
+    print("Now try again for more precision on alpha, with l1_ratio fixed at " + str(ratio) + 
+          " and alpha centered around " + str(alpha))
+    elasticNet = ElasticNetCV(l1_ratio = ratio,
+                              alphas = [alpha * .6, alpha * .65, alpha * .7, alpha * .75, alpha * .8, alpha * .85, alpha * .9, 
+                                        alpha * .95, alpha, alpha * 1.05, alpha * 1.1, alpha * 1.15, alpha * 1.25, alpha * 1.3, 
+                                        alpha * 1.35, alpha * 1.4], 
+                              max_iter = 50000, cv = 10)
+    elasticNet.fit(X_train, y_train)
+    if (elasticNet.l1_ratio_ > 1):
+        elasticNet.l1_ratio_ = 1    
+    alpha = elasticNet.alpha_
+    ratio = elasticNet.l1_ratio_
+    print("Best l1_ratio :", ratio)
+    print("Best alpha :", alpha )
 
-print("ElasticNet RMSE on Training set :", rmse_cv_train(elasticNet).mean())
-print("ElasticNet RMSE on Test set :", rmse_cv_test(elasticNet).mean())
-y_train_ela = elasticNet.predict(X_train)
-y_test_ela = elasticNet.predict(X_test)
+    print("ElasticNet RMSE on Training set :", rmse_cv_train(elasticNet).mean())
+    print("ElasticNet RMSE on Test set :", rmse_cv_test(elasticNet).mean())
+    y_train_ela = elasticNet.predict(X_train)
+    y_test_ela = elasticNet.predict(X_test)
 
-# Plot residuals
-plt.scatter(y_train_ela, y_train_ela - y_train, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test_ela, y_test_ela - y_test, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression with ElasticNet regularization")
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.legend(loc = "upper left")
-plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
-plt.show()
+    # Plot residuals
+    plt.scatter(y_train_ela, y_train_ela - y_train, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test_ela, y_test_ela - y_test, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression with ElasticNet regularization")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Residuals")
+    plt.legend(loc = "upper left")
+    plt.hlines(y = 0, xmin = 5, xmax = 80, color = "red")
+    plt.show()
 
-# Plot predictions
-plt.scatter(y_train, y_train_ela, c = "blue", marker = "s", label = "Training data")
-plt.scatter(y_test, y_test_ela, c = "lightgreen", marker = "s", label = "Validation data")
-plt.title("Linear regression with ElasticNet regularization")
-plt.xlabel("Predicted values")
-plt.ylabel("Real values")
-plt.legend(loc = "upper left")
-plt.plot([5,80], [5,80], c = "red")
-plt.show()
+    # Plot predictions
+    plt.scatter(y_train, y_train_ela, c = "blue", marker = "s", label = "Training data")
+    plt.scatter(y_test, y_test_ela, c = "lightgreen", marker = "s", label = "Validation data")
+    plt.title("Linear regression with ElasticNet regularization")
+    plt.xlabel("Predicted values")
+    plt.ylabel("Real values")
+    plt.legend(loc = "upper left")
+    plt.plot([5,80], [5,80], c = "red")
+    plt.show()
 
-# Plot important coefficients
-coefs = pd.Series(elasticNet.coef_, index = X_train.columns)
-print("ElasticNet picked " + str(sum(coefs != 0)) + " features and eliminated the other " +  str(sum(coefs == 0)) + " features")
-imp_coefs = pd.concat([coefs.sort_values().head(10),
-                     coefs.sort_values().tail(10)])
-imp_coefs.plot(kind = "barh")
-plt.title("Coefficients in the ElasticNet Model")
-plt.show()
+    # Plot important coefficients
+    coefs = pd.Series(elasticNet.coef_, index = X_train.columns)
+    print("ElasticNet picked " + str(sum(coefs != 0)) + " features and eliminated the other " +  str(sum(coefs == 0)) + " features")
+    imp_coefs = pd.concat([coefs.sort_values().head(10),
+                         coefs.sort_values().tail(10)])
+    imp_coefs.plot(kind = "barh")
+    plt.title("Coefficients in the ElasticNet Model")
+    plt.show()
+
+def Help():
+    print('You could input the independent variable and dependent variable and plot seaborn pairplot by typing in "Joint(feature, target)".')
+    print('''You could choose the predict method among linear regression, ridge regression, LASSO regression and ElasticNet regression, by 
+          typing in "lr(), Ridge(), Lasso() or Elastic()".''')
+    
+if __name__=='__main__':
+    print('You could get the information of training set and testing set by typing in "DatasetDescription()"\n')
+    print('You could input the independent variable and dependent variable and plot seaborn pairplot by type in "Joint(feature, target)"\n')
+    print('''You could choose the predict method among linear regression, ridge regression, LASSO regression and ElasticNet regression, by 
+typing in "lr(), Ridge(), Lasso() or Elastic()".\n''')
+    print('You could get any help by typing in "Help()"')
